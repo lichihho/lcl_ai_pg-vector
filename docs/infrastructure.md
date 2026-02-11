@@ -16,11 +16,11 @@
 │                                                         │
 │  ┌───────────────── MicroK8s HA 叢集 ────────────────┐  │
 │  │                                                    │  │
-│  │  192.168.1.252  (master)  RTX 8000  62G RAM       │  │
-│  │  192.168.1.162  (master)  RTX 8000  62G RAM       │  │
-│  │  192.168.1.157  (master)  RTX 8000  62G RAM       │  │
+│  │  192.168.1.252  (master)  RTX 3090  128G RAM       │  │
+│  │  192.168.1.162  (master)  RTX 8000  64G RAM       │  │
+│  │  192.168.1.157  (master)  RTX 8000  64G RAM       │  │
 │  │    └── GitLab Runner (lcl-ub3-runner)             │  │
-│  │  192.168.1.245  (standby) 2x RTX 3090  125G RAM  │  │
+│  │  192.168.1.245  (standby) 2x RTX 3090  128G RAM  │  │
 │  │                                                    │  │
 │  └────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
@@ -30,10 +30,10 @@
 
 | 角色 | Host / SSH alias | IP | SSH Port | GPU | RAM | 說明 |
 |------|------------------|------|----------|-----|-----|------|
-| K8s master | — | 192.168.1.252 | — | RTX 8000 | 62G | 本機（開發機） |
-| K8s master | ub6-ai02 | 192.168.1.162 | 52522 | RTX 8000 | 62G | MicroK8s 主節點 |
-| K8s master / Runner | ub3 (lcl-ub3) | 192.168.1.157 | 52522 | RTX 8000 | 62G | 同時是 GitLab Runner |
-| K8s standby | labsl-dualgpu | 192.168.1.245 | 5250 | 2× RTX 3090 | 125G | 內網 SSH port 與其他節點不同 |
+| K8s master | ub5-g | 192.168.1.252 | 52522 | RTX 3090 | 128G | |
+| K8s master | ub6-ai02 | 192.168.1.162 | 52522 | RTX 8000 | 64G | MicroK8s 主節點 |
+| K8s master / Runner | ub3 (lcl-ub3) | 192.168.1.157 | 52522 | RTX 8000 | 64G | 同時是 GitLab Runner |
+| K8s standby | labsl-dualgpu | 192.168.1.245 | 5250 | 2× RTX 3090 | 128G | 內網 SSH port 與其他節點不同 |
 | NAS / GitLab / Registry | nas02 (LCL-NAS-02) | 192.168.1.152 | 52500 | — | 31G | Synology NAS, Intel Xeon D-1527 |
 
 > 192.168.1.245 外網 IP 為 140.128.121.226:52522（路由器 port forwarding）。
