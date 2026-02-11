@@ -42,6 +42,11 @@ MCP 工具（8 個）：`list_files`, `read_file`, `write_file`, `delete_file`, 
 
 L4 labels map to ADE20K indices, then L3/L2/L1 aggregate by tuple concatenation (`_get_ladeco_labels()` in `engine.py`).
 
+## Git Workflow
+
+- 本專案有兩個 remote：`origin`（GitHub）和 `gitlab`（GitLab）
+- Commit 後 push 必須同時推送到兩個 remote：`git push origin main && git push gitlab main`
+
 ## Key Conventions
 
 - NAS datasets mount at `/mnt/ai_data` (read-only in compose.yml)
