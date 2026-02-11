@@ -7,6 +7,10 @@
     "ladeco": {
       "type": "sse",
       "url": "http://192.168.1.162:30800/mcp/sse"
+    },
+    "pg-vector": {
+      "type": "sse",
+      "url": "http://192.168.1.152:30805/mcp/sse"
     }
   }
 }

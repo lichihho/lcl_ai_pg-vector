@@ -31,6 +31,16 @@ MCP 工具（8 個）：`list_files`, `read_file`, `write_file`, `delete_file`, 
 - REST API: `http://192.168.1.162:30803/api/` (Swagger: `/api/docs`)
 - 多檔上傳（不經 LLM）: `POST /api/upload/{directory}`
 
+### pg-vector — 研究資料庫 + 向量搜尋
+
+PostgreSQL + pgvector 資料庫，管理研究專案、影像中繼資料、分析結果，並支援向量相似度搜尋（以圖搜圖）。部署於 NAS02 (192.168.1.152)。
+
+MCP 工具（13 個）：`create_project`, `get_project`, `list_projects`, `delete_project`, `create_image`, `get_image`, `list_images`, `update_image_embedding`, `create_analysis_result`, `list_analysis_results`, `search_similar_images`, `search_similar_by_image_id`, `get_project_summary`
+
+- REST API: `http://192.168.1.152:30805/api/` (Swagger: `/api/docs`)
+- Schema: projects, images (with vector(512) embedding), analysis_results
+- 向量搜尋使用 HNSW 索引 + cosine similarity
+
 ## 標籤階層（L1–L4）
 
 | 層級 | 說明 | 類別數 | 範例 |
@@ -62,4 +72,5 @@ L4 labels map to ADE20K indices, then L3/L2/L1 aggregate by tuple concatenation 
 |------|------|
 | [`docs/services/ladeco.md`](docs/services/ladeco.md) | LaDeco 架構、Build & Run、REST API、部署 |
 | [`docs/services/nas-files.md`](docs/services/nas-files.md) | NAS File Server 架構、REST API、部署 |
+| [`docs/services/pg-vector.md`](docs/services/pg-vector.md) | pg-vector 架構、Schema、REST API、部署 |
 | [`docs/infrastructure.md`](docs/infrastructure.md) | 基礎設施（IP、K8s、GitLab CI/CD、Registry） |
