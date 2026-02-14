@@ -10,12 +10,13 @@ from psycopg.rows import dict_row
 import db
 
 _EMBEDDING_DIM = 512
+_TEXT_EMBEDDING_DIM = 1536
 
 
-def _validate_embedding(embedding: list[float]) -> str:
+def _validate_embedding(embedding: list[float], dim: int = _EMBEDDING_DIM) -> str:
     """Validate dimension and convert to pgvector-compatible string."""
-    if len(embedding) != _EMBEDDING_DIM:
-        raise ValueError(f"Embedding must be {_EMBEDDING_DIM}-dimensional, got {len(embedding)}")
+    if len(embedding) != dim:
+        raise ValueError(f"Embedding must be {dim}-dimensional, got {len(embedding)}")
     return "[" + ",".join(str(x) for x in embedding) + "]"
 
 
@@ -406,3 +407,217 @@ def get_project_summary(project_id: int) -> dict:
         "result_count": counts["result_count"],
         "tools_used": [dict(t) for t in tools],
     }
+
+
+# ── Datasets ─────────────────────────────────────────────────────────
+
+
+def create_dataset(name: str, description: str | None = None, methodology: str | None = None) -> dict:
+    """Create a new dataset."""
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "INSERT INTO datasets (name, description, methodology) "
+                "VALUES (%s, %s, %s) RETURNING *",
+                (name, description, methodology),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    return _serialize_row(row)
+
+
+def get_dataset(dataset_id: int) -> dict:
+    """Get a dataset by ID."""
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM datasets WHERE dataset_id = %s", (dataset_id,))
+            row = cur.fetchone()
+    if row is None:
+        raise ValueError(f"Dataset not found: {dataset_id}")
+    return _serialize_row(row)
+
+
+def list_datasets() -> list[dict]:
+    """List all datasets."""
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM datasets ORDER BY dataset_id")
+            rows = cur.fetchall()
+    return [_serialize_row(r) for r in rows]
+
+
+def delete_dataset(dataset_id: int) -> dict:
+    """Delete a dataset (cascades to dataset_images)."""
+    with db.get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM datasets WHERE dataset_id = %s RETURNING dataset_id", (dataset_id,))
+            row = cur.fetchone()
+        conn.commit()
+    if row is None:
+        raise ValueError(f"Dataset not found: {dataset_id}")
+    return {"status": "ok", "deleted_dataset_id": row[0]}
+
+
+def get_dataset_summary(dataset_id: int) -> dict:
+    """Get a summary of a dataset including image count and metadata stats."""
+    dataset = get_dataset(dataset_id)
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "SELECT COUNT(*) AS image_count FROM dataset_images WHERE dataset_id = %s",
+                (dataset_id,),
+            )
+            counts = cur.fetchone()
+    return {**dataset, "image_count": counts["image_count"]}
+
+
+# ── Dataset Images ───────────────────────────────────────────────────
+
+
+def add_image_to_dataset(dataset_id: int, image_id: int, metadata: dict | None = None) -> dict:
+    """Link an image to a dataset with curation metadata."""
+    rj = json.dumps(metadata or {})
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "INSERT INTO dataset_images (dataset_id, image_id, metadata) "
+                "VALUES (%s, %s, %s) RETURNING *",
+                (dataset_id, image_id, rj),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    return _serialize_row(row)
+
+
+def list_dataset_images(
+    dataset_id: int,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict]:
+    """List images in a dataset with their curation metadata."""
+    if not (1 <= limit <= 500):
+        raise ValueError("limit must be between 1 and 500")
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "SELECT i.*, di.metadata AS dataset_metadata "
+                "FROM dataset_images di "
+                "JOIN images i ON i.image_id = di.image_id "
+                "WHERE di.dataset_id = %s "
+                "ORDER BY i.image_id LIMIT %s OFFSET %s",
+                (dataset_id, limit, offset),
+            )
+            rows = cur.fetchall()
+    return [_serialize_row(r) for r in rows]
+
+
+def remove_image_from_dataset(dataset_id: int, image_id: int) -> dict:
+    """Remove an image from a dataset."""
+    with db.get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM dataset_images WHERE dataset_id = %s AND image_id = %s "
+                "RETURNING dataset_id, image_id",
+                (dataset_id, image_id),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    if row is None:
+        raise ValueError(f"Image {image_id} not in dataset {dataset_id}")
+    return {"status": "ok", "dataset_id": row[0], "image_id": row[1]}
+
+
+# ── Image Descriptions ───────────────────────────────────────────────
+
+
+def create_image_description(
+    image_id: int,
+    tool_name: str,
+    content: str,
+    project_id: int | None = None,
+    embedding: list[float] | None = None,
+    language: str = "zh",
+    model_version: str | None = None,
+) -> dict:
+    """Store an LLM-generated text description for an image."""
+    emb_str = _validate_embedding(embedding, _TEXT_EMBEDDING_DIM) if embedding is not None else None
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "INSERT INTO image_descriptions "
+                "(project_id, image_id, tool_name, content, embedding, language, model_version) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING *",
+                (project_id, image_id, tool_name, content, emb_str, language, model_version),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    return _serialize_row(row)
+
+
+def list_image_descriptions(
+    image_id: int | None = None,
+    project_id: int | None = None,
+    tool_name: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict]:
+    """List image descriptions with optional filters."""
+    if not (1 <= limit <= 500):
+        raise ValueError("limit must be between 1 and 500")
+    conditions = []
+    params: list = []
+    if image_id is not None:
+        conditions.append("image_id = %s")
+        params.append(image_id)
+    if project_id is not None:
+        conditions.append("project_id = %s")
+        params.append(project_id)
+    if tool_name is not None:
+        conditions.append("tool_name = %s")
+        params.append(tool_name)
+    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+    params.extend([limit, offset])
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"SELECT * FROM image_descriptions{where} ORDER BY description_id LIMIT %s OFFSET %s",
+                params,
+            )
+            rows = cur.fetchall()
+    return [_serialize_row(r) for r in rows]
+
+
+def search_similar_descriptions(
+    embedding: list[float],
+    top_k: int = 10,
+    threshold: float | None = None,
+) -> list[dict]:
+    """Search for similar text descriptions by embedding vector (cosine distance)."""
+    if not (1 <= top_k <= 100):
+        raise ValueError("top_k must be between 1 and 100")
+    emb_str = _validate_embedding(embedding, _TEXT_EMBEDDING_DIM)
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            if threshold is not None:
+                cur.execute(
+                    "WITH query AS (SELECT %s::vector AS emb) "
+                    "SELECT d.*, i.local_path, 1 - (d.embedding <=> q.emb) AS similarity "
+                    "FROM image_descriptions d "
+                    "JOIN images i ON i.image_id = d.image_id, query q "
+                    "WHERE d.embedding IS NOT NULL "
+                    "AND 1 - (d.embedding <=> q.emb) >= %s "
+                    "ORDER BY d.embedding <=> q.emb LIMIT %s",
+                    (emb_str, threshold, top_k),
+                )
+            else:
+                cur.execute(
+                    "WITH query AS (SELECT %s::vector AS emb) "
+                    "SELECT d.*, i.local_path, 1 - (d.embedding <=> q.emb) AS similarity "
+                    "FROM image_descriptions d "
+                    "JOIN images i ON i.image_id = d.image_id, query q "
+                    "WHERE d.embedding IS NOT NULL "
+                    "ORDER BY d.embedding <=> q.emb LIMIT %s",
+                    (emb_str, top_k),
+                )
+            rows = cur.fetchall()
+    return [_serialize_row(r) for r in rows]

@@ -248,6 +248,160 @@ def get_project_summary(project_id: int) -> str:
     return json.dumps(service.get_project_summary(project_id), ensure_ascii=False)
 
 
+# ── Datasets ─────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def create_dataset(name: str, description: str | None = None, methodology: str | None = None) -> str:
+    """Create a new dataset (image collection).
+
+    Args:
+        name: Unique dataset name (e.g. "preference-dataset").
+        description: Brief description of the dataset.
+        methodology: How the dataset was constructed.
+
+    Returns:
+        JSON object with the created dataset details.
+    """
+    return json.dumps(service.create_dataset(name, description, methodology), ensure_ascii=False)
+
+
+@mcp.tool()
+def get_dataset(dataset_id: int) -> str:
+    """Get a dataset by ID.
+
+    Args:
+        dataset_id: The dataset ID.
+
+    Returns:
+        JSON object with dataset details.
+    """
+    return json.dumps(service.get_dataset(dataset_id), ensure_ascii=False)
+
+
+@mcp.tool()
+def list_datasets() -> str:
+    """List all datasets.
+
+    Returns:
+        JSON array of all datasets.
+    """
+    return json.dumps(service.list_datasets(), ensure_ascii=False)
+
+
+@mcp.tool()
+def delete_dataset(dataset_id: int) -> str:
+    """Delete a dataset and its image associations (CASCADE).
+
+    Args:
+        dataset_id: The dataset ID to delete.
+
+    Returns:
+        Confirmation message.
+    """
+    return json.dumps(service.delete_dataset(dataset_id), ensure_ascii=False)
+
+
+@mcp.tool()
+def get_dataset_summary(dataset_id: int) -> str:
+    """Get a summary of a dataset including image count.
+
+    Args:
+        dataset_id: The dataset ID.
+
+    Returns:
+        JSON object with dataset info and statistics.
+    """
+    return json.dumps(service.get_dataset_summary(dataset_id), ensure_ascii=False)
+
+
+@mcp.tool()
+def add_image_to_dataset(dataset_id: int, image_id: int, metadata: dict | None = None) -> str:
+    """Link an image to a dataset with optional curation metadata.
+
+    Args:
+        dataset_id: The dataset ID.
+        image_id: The image ID to add.
+        metadata: Curation metadata as JSON (e.g. dim, zscore, p365_class).
+
+    Returns:
+        JSON object with the created link details.
+    """
+    return json.dumps(service.add_image_to_dataset(dataset_id, image_id, metadata), ensure_ascii=False)
+
+
+@mcp.tool()
+def list_dataset_images(dataset_id: int, limit: int = 50, offset: int = 0) -> str:
+    """List images in a dataset with their curation metadata.
+
+    Args:
+        dataset_id: The dataset ID.
+        limit: Maximum number of images to return. Defaults to 50.
+        offset: Number of images to skip. Defaults to 0.
+
+    Returns:
+        JSON array of images with dataset_metadata.
+    """
+    return json.dumps(service.list_dataset_images(dataset_id, limit, offset), ensure_ascii=False)
+
+
+# ── Image Descriptions ───────────────────────────────────────────────
+
+
+@mcp.tool()
+def create_image_description(
+    image_id: int,
+    tool_name: str,
+    content: str,
+    project_id: int | None = None,
+    language: str = "zh",
+    model_version: str | None = None,
+) -> str:
+    """Store an LLM-generated text description for an image.
+
+    Args:
+        image_id: The image ID.
+        tool_name: Name of the LLM tool (e.g. "claude_vision", "gpt4v").
+        content: The text description content.
+        project_id: Optional project ID to associate with.
+        language: Language code (default "zh").
+        model_version: Version of the model used.
+
+    Returns:
+        JSON object with the created description details.
+    """
+    return json.dumps(
+        service.create_image_description(image_id, tool_name, content, project_id, None, language, model_version),
+        ensure_ascii=False,
+    )
+
+
+@mcp.tool()
+def list_image_descriptions(
+    image_id: int | None = None,
+    project_id: int | None = None,
+    tool_name: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> str:
+    """List image descriptions with optional filters.
+
+    Args:
+        image_id: Filter by image ID.
+        project_id: Filter by project ID.
+        tool_name: Filter by tool name.
+        limit: Maximum number of results to return. Defaults to 50.
+        offset: Number of results to skip. Defaults to 0.
+
+    Returns:
+        JSON array of matching image descriptions.
+    """
+    return json.dumps(
+        service.list_image_descriptions(image_id, project_id, tool_name, limit, offset),
+        ensure_ascii=False,
+    )
+
+
 def mount_mcp_sse(app):
     """Mount MCP SSE endpoints onto a FastAPI/Starlette app at /mcp.
 

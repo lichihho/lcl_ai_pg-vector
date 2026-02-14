@@ -1,47 +1,6 @@
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- projects
-CREATE TABLE IF NOT EXISTS projects (
-    project_id    SERIAL PRIMARY KEY,
-    researcher_name TEXT NOT NULL,
-    topic         TEXT NOT NULL,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- images (shared across projects and datasets)
-CREATE TABLE IF NOT EXISTS images (
-    image_id      SERIAL PRIMARY KEY,
-    source_type   TEXT NOT NULL DEFAULT 'local',
-    lat           DOUBLE PRECISION,
-    lng           DOUBLE PRECISION,
-    local_path    TEXT,
-    remote_url    TEXT,
-    checksum      TEXT,
-    embedding     vector(512),
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_images_embedding_hnsw ON images
-    USING hnsw (embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 64);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_images_checksum ON images (checksum)
-    WHERE checksum IS NOT NULL;
-
--- analysis_results (numeric results, links projects <-> images)
-CREATE TABLE IF NOT EXISTS analysis_results (
-    result_id     SERIAL PRIMARY KEY,
-    project_id    INTEGER NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
-    image_id      INTEGER NOT NULL REFERENCES images(image_id) ON DELETE CASCADE,
-    tool_name     TEXT NOT NULL,
-    result_json   JSONB NOT NULL DEFAULT '{}',
-    confidence    DOUBLE PRECISION,
-    model_version TEXT,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_results_project_image ON analysis_results (project_id, image_id);
-CREATE INDEX IF NOT EXISTS idx_results_tool ON analysis_results (tool_name);
+-- Migration 002: Add datasets, dataset_images, and image_descriptions tables
+-- Date: 2026-02-15
+-- Description: Support dataset curation metadata and LLM text descriptions
 
 -- datasets: registry of image collections
 CREATE TABLE IF NOT EXISTS datasets (

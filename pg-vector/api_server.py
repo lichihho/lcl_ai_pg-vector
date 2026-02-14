@@ -66,6 +66,48 @@ class ResultCreate(BaseModel):
     model_version: str | None = None
 
 
+class DatasetCreate(BaseModel):
+    name: str
+    description: str | None = None
+    methodology: str | None = None
+
+
+class DatasetImageAdd(BaseModel):
+    dataset_id: int
+    image_id: int
+    metadata: dict | None = None
+
+
+class DescriptionCreate(BaseModel):
+    image_id: int
+    tool_name: str
+    content: str
+    project_id: int | None = None
+    embedding: list[float] | None = None
+    language: str = "zh"
+    model_version: str | None = None
+
+    @field_validator("embedding")
+    @classmethod
+    def check_embedding_dim(cls, v):
+        if v is not None and len(v) != 1536:
+            raise ValueError(f"Text embedding must be 1536-dimensional, got {len(v)}")
+        return v
+
+
+class SimilarDescriptionSearch(BaseModel):
+    embedding: list[float]
+    top_k: int = 10
+    threshold: float | None = None
+
+    @field_validator("embedding")
+    @classmethod
+    def check_embedding_dim(cls, v):
+        if len(v) != 1536:
+            raise ValueError(f"Text embedding must be 1536-dimensional, got {len(v)}")
+        return v
+
+
 class SimilarSearch(BaseModel):
     embedding: list[float]
     top_k: int = 10
@@ -204,3 +246,78 @@ def search_similar_by_image(
     threshold: float | None = Query(None),
 ):
     return JSONResponse(content=service.search_similar_by_image_id(image_id, top_k, threshold))
+
+
+# ── Datasets ────────────────────────────────────────────────────────
+
+
+@app.post("/datasets", status_code=201)
+def create_dataset(body: DatasetCreate):
+    return JSONResponse(status_code=201, content=service.create_dataset(body.name, body.description, body.methodology))
+
+
+@app.get("/datasets")
+def list_datasets():
+    return JSONResponse(content=service.list_datasets())
+
+
+@app.get("/datasets/{dataset_id}")
+def get_dataset(dataset_id: int):
+    return JSONResponse(content=service.get_dataset(dataset_id))
+
+
+@app.delete("/datasets/{dataset_id}")
+def delete_dataset(dataset_id: int):
+    return JSONResponse(content=service.delete_dataset(dataset_id))
+
+
+@app.get("/datasets/{dataset_id}/summary")
+def get_dataset_summary(dataset_id: int):
+    return JSONResponse(content=service.get_dataset_summary(dataset_id))
+
+
+@app.post("/datasets/images", status_code=201)
+def add_image_to_dataset(body: DatasetImageAdd):
+    return JSONResponse(
+        status_code=201,
+        content=service.add_image_to_dataset(body.dataset_id, body.image_id, body.metadata),
+    )
+
+
+@app.get("/datasets/{dataset_id}/images")
+def list_dataset_images(
+    dataset_id: int,
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    return JSONResponse(content=service.list_dataset_images(dataset_id, limit, offset))
+
+
+# ── Image Descriptions ──────────────────────────────────────────────
+
+
+@app.post("/descriptions", status_code=201)
+def create_description(body: DescriptionCreate):
+    return JSONResponse(
+        status_code=201,
+        content=service.create_image_description(
+            body.image_id, body.tool_name, body.content,
+            body.project_id, body.embedding, body.language, body.model_version,
+        ),
+    )
+
+
+@app.get("/descriptions")
+def list_descriptions(
+    image_id: int | None = Query(None),
+    project_id: int | None = Query(None),
+    tool_name: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    return JSONResponse(content=service.list_image_descriptions(image_id, project_id, tool_name, limit, offset))
+
+
+@app.post("/search/similar-descriptions")
+def search_similar_descriptions(body: SimilarDescriptionSearch):
+    return JSONResponse(content=service.search_similar_descriptions(body.embedding, body.top_k, body.threshold))
