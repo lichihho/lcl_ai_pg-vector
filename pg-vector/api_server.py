@@ -332,6 +332,11 @@ def list_descriptions(
     return JSONResponse(content=service.list_image_descriptions(image_id, project_id, tool_name, limit, offset))
 
 
+@app.delete("/descriptions/{description_id}")
+def delete_description(description_id: int):
+    return JSONResponse(content=service.delete_image_description(description_id))
+
+
 @app.post("/search/similar-descriptions")
 def search_similar_descriptions(body: SimilarDescriptionSearch):
     return JSONResponse(content=service.search_similar_descriptions(body.embedding, body.top_k, body.threshold))

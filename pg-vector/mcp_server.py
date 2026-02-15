@@ -415,6 +415,19 @@ def list_image_descriptions(
     )
 
 
+@mcp.tool()
+def delete_image_description(description_id: int) -> str:
+    """Delete an image description by its ID.
+
+    Args:
+        description_id: The description ID to delete.
+
+    Returns:
+        Confirmation message.
+    """
+    return json.dumps(service.delete_image_description(description_id), ensure_ascii=False)
+
+
 def mount_mcp_sse(app):
     """Mount MCP SSE endpoints onto a FastAPI/Starlette app at /mcp.
 

@@ -623,6 +623,21 @@ def list_image_descriptions(
     return [_serialize_row(r) for r in rows]
 
 
+def delete_image_description(description_id: int) -> dict:
+    """Delete an image description."""
+    with db.get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM image_descriptions WHERE description_id = %s RETURNING description_id",
+                (description_id,),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    if row is None:
+        raise ValueError(f"Description not found: {description_id}")
+    return {"status": "ok", "deleted_description_id": row[0]}
+
+
 def search_similar_descriptions(
     embedding: list[float],
     top_k: int = 10,
