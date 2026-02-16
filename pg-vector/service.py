@@ -638,6 +638,65 @@ def delete_image_description(description_id: int) -> dict:
     return {"status": "ok", "deleted_description_id": row[0]}
 
 
+# ── Questionnaires ────────────────────────────────────────────────────
+
+
+def create_questionnaire(
+    name: str,
+    questions: list[dict],
+    description: str | None = None,
+    prompt_template: str | None = None,
+    scale_min: int = 1,
+    scale_max: int = 4,
+) -> dict:
+    """Create a new questionnaire."""
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "INSERT INTO questionnaires (name, questions, description, prompt_template, scale_min, scale_max) "
+                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING *",
+                (name, json.dumps(questions), description, prompt_template, scale_min, scale_max),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    return _serialize_row(row)
+
+
+def get_questionnaire(questionnaire_id: int) -> dict:
+    """Get a questionnaire by ID."""
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM questionnaires WHERE questionnaire_id = %s", (questionnaire_id,))
+            row = cur.fetchone()
+    if row is None:
+        raise ValueError(f"Questionnaire not found: {questionnaire_id}")
+    return _serialize_row(row)
+
+
+def list_questionnaires() -> list[dict]:
+    """List all questionnaires."""
+    with db.get_conn() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM questionnaires ORDER BY questionnaire_id")
+            rows = cur.fetchall()
+    return [_serialize_row(r) for r in rows]
+
+
+def delete_questionnaire(questionnaire_id: int) -> dict:
+    """Delete a questionnaire."""
+    with db.get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM questionnaires WHERE questionnaire_id = %s RETURNING questionnaire_id",
+                (questionnaire_id,),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    if row is None:
+        raise ValueError(f"Questionnaire not found: {questionnaire_id}")
+    return {"status": "ok", "deleted_questionnaire_id": row[0]}
+
+
 def search_similar_descriptions(
     embedding: list[float],
     top_k: int = 10,

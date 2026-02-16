@@ -358,6 +358,73 @@ def list_dataset_images(
     )
 
 
+# ── Questionnaires ────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def create_questionnaire(
+    name: str,
+    questions: list[dict],
+    description: str | None = None,
+    prompt_template: str | None = None,
+    scale_min: int = 1,
+    scale_max: int = 4,
+) -> str:
+    """Create a new questionnaire (reusable survey template for PRBot).
+
+    Args:
+        name: Unique questionnaire name.
+        questions: List of question objects (each with text, dimension, etc.).
+        description: Brief description of the questionnaire.
+        prompt_template: Prompt template for LLM-based evaluation.
+        scale_min: Minimum scale value (default 1).
+        scale_max: Maximum scale value (default 4).
+
+    Returns:
+        JSON object with the created questionnaire details.
+    """
+    return json.dumps(
+        service.create_questionnaire(name, questions, description, prompt_template, scale_min, scale_max),
+        ensure_ascii=False,
+    )
+
+
+@mcp.tool()
+def get_questionnaire(questionnaire_id: int) -> str:
+    """Get a questionnaire by ID.
+
+    Args:
+        questionnaire_id: The questionnaire ID.
+
+    Returns:
+        JSON object with questionnaire details.
+    """
+    return json.dumps(service.get_questionnaire(questionnaire_id), ensure_ascii=False)
+
+
+@mcp.tool()
+def list_questionnaires() -> str:
+    """List all questionnaires.
+
+    Returns:
+        JSON array of all questionnaires.
+    """
+    return json.dumps(service.list_questionnaires(), ensure_ascii=False)
+
+
+@mcp.tool()
+def delete_questionnaire(questionnaire_id: int) -> str:
+    """Delete a questionnaire.
+
+    Args:
+        questionnaire_id: The questionnaire ID to delete.
+
+    Returns:
+        Confirmation message.
+    """
+    return json.dumps(service.delete_questionnaire(questionnaire_id), ensure_ascii=False)
+
+
 # ── Image Descriptions ───────────────────────────────────────────────
 
 

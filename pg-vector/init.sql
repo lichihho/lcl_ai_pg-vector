@@ -82,3 +82,15 @@ CREATE INDEX IF NOT EXISTS idx_descriptions_tool ON image_descriptions (tool_nam
 CREATE INDEX IF NOT EXISTS idx_descriptions_embedding_hnsw ON image_descriptions
     USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
+
+-- questionnaires: reusable survey templates for PRBot
+CREATE TABLE IF NOT EXISTS questionnaires (
+    questionnaire_id  SERIAL PRIMARY KEY,
+    name              TEXT NOT NULL UNIQUE,
+    description       TEXT,
+    questions         JSONB NOT NULL,
+    prompt_template   TEXT,
+    scale_min         INTEGER NOT NULL DEFAULT 1,
+    scale_max         INTEGER NOT NULL DEFAULT 4,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);

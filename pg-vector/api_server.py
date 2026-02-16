@@ -95,6 +95,15 @@ class DescriptionCreate(BaseModel):
         return v
 
 
+class QuestionnaireCreate(BaseModel):
+    name: str
+    questions: list[dict]
+    description: str | None = None
+    prompt_template: str | None = None
+    scale_min: int = 1
+    scale_max: int = 4
+
+
 class SimilarDescriptionSearch(BaseModel):
     embedding: list[float]
     top_k: int = 10
@@ -335,6 +344,35 @@ def list_descriptions(
 @app.delete("/descriptions/{description_id}")
 def delete_description(description_id: int):
     return JSONResponse(content=service.delete_image_description(description_id))
+
+
+# ── Questionnaires ──────────────────────────────────────────────────
+
+
+@app.post("/questionnaires", status_code=201)
+def create_questionnaire(body: QuestionnaireCreate):
+    return JSONResponse(
+        status_code=201,
+        content=service.create_questionnaire(
+            body.name, body.questions, body.description,
+            body.prompt_template, body.scale_min, body.scale_max,
+        ),
+    )
+
+
+@app.get("/questionnaires")
+def list_questionnaires():
+    return JSONResponse(content=service.list_questionnaires())
+
+
+@app.get("/questionnaires/{questionnaire_id}")
+def get_questionnaire(questionnaire_id: int):
+    return JSONResponse(content=service.get_questionnaire(questionnaire_id))
+
+
+@app.delete("/questionnaires/{questionnaire_id}")
+def delete_questionnaire(questionnaire_id: int):
+    return JSONResponse(content=service.delete_questionnaire(questionnaire_id))
 
 
 @app.post("/search/similar-descriptions")
