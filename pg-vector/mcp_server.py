@@ -502,13 +502,33 @@ def mount_mcp(app):
     After mounting, the MCP endpoint is available at /mcp.
     Uses Streamable HTTP transport (replaces deprecated SSE).
     """
+    import contextlib
+
     from mcp.server.transport_security import TransportSecuritySettings
 
     mcp.settings.transport_security = TransportSecuritySettings(
         enable_dns_rebinding_protection=False,
     )
     mcp.settings.streamable_http_path = "/"
-    app.mount("/mcp", mcp.streamable_http_app())
+
+    streamable_app = mcp.streamable_http_app()
+    app.mount("/mcp", streamable_app)
+
+    # Starlette does not propagate lifespan events to mounted sub-apps,
+    # so we wrap the parent app's lifespan to start the MCP session manager.
+    _original_lifespan = app.router.lifespan_handler
+
+    @contextlib.asynccontextmanager
+    async def _wrapped_lifespan(a):
+        if _original_lifespan:
+            async with _original_lifespan(a) as state:
+                async with mcp.session_manager.run():
+                    yield state
+        else:
+            async with mcp.session_manager.run():
+                yield
+
+    app.router.lifespan_handler = _wrapped_lifespan
 
 
 # Backward compat alias
