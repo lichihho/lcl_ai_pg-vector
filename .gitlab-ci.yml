@@ -7,7 +7,7 @@ variables:
   IMAGE_NAME: "pg-vector"
   IMAGE_TAG: "latest"
   NAS02_HOST: "192.168.1.152"
-  NAS02_SSH_PORT: "52500"
+  NAS02_SSH_PORT: "52522"
   NAS02_USER: "lichih"
   DEPLOY_PATH: "/volume1/docker/pg-vector"
 

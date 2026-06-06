@@ -35,7 +35,7 @@
 | K8s master | ub6-ai02 | 192.168.1.162 | 52522 | RTX 8000 | 64G | MicroK8s 主節點 |
 | K8s master / Runner | ub3 (lcl-ub3) | 192.168.1.157 | 52522 | RTX 8000 | 64G | 同時是 GitLab Runner |
 | K8s standby | labsl-dualgpu | 192.168.1.245 | 5250 | 2× RTX 3090 | 128G | 內網 SSH port 與其他節點不同 |
-| NAS / GitLab / Registry | nas02 (LCL-NAS-02) | 192.168.1.152 | 52500 | — | 31G | Synology NAS, Intel Xeon D-1527, 同時運行 pg-vector |
+| NAS / GitLab / Registry | nas02 (LCL-NAS-02) | 192.168.1.152 | 52522 | — | 31G | Synology NAS, Intel Xeon D-1527, 同時運行 pg-vector |
 
 > 192.168.1.245 外網 IP 為 140.128.121.226:52522（路由器 port forwarding）。
 
@@ -252,7 +252,7 @@ services:
 
 Runner 透過 SSH 執行部署：`gitlab-runner` 用戶的 SSH key (`~/.ssh/id_ed25519`) 已加入以下主機的 `lichih` authorized_keys：
 - K8s 主節點 (ub6-ai02, 192.168.1.162)：CI 中以 `ssh -p 52522` 執行 kubectl
-- NAS02 (192.168.1.152)：CI 中以 `ssh -p 52500` 執行 docker compose（pg-vector 部署）
+- NAS02 (192.168.1.152)：CI 中以 `ssh -p 52522` 執行 docker compose（pg-vector 部署）
 
 ### Runner 前置需求
 
@@ -325,7 +325,7 @@ ssh -p 5250 lichih@192.168.1.245
 ssh -p 52522 lichih@140.128.121.226
 
 # NAS
-ssh -p 52500 lichih@192.168.1.152
+ssh -p 52522 lichih@192.168.1.152
 ```
 
 ---

@@ -102,7 +102,7 @@ docker build -t 192.168.1.152:5679/pg-vector:latest -f pg-vector/Dockerfile pg-v
 docker push 192.168.1.152:5679/pg-vector:latest
 
 # 2. SSH 到 NAS02 部署
-ssh -p 52500 lichih@192.168.1.152
+ssh -p 52522 lichih@192.168.1.152
 cd /volume1/docker/pg-vector
 export PATH=/usr/local/bin:$PATH
 docker compose pull && docker compose up -d
